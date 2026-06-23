@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en-AU" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VCE Applied Computing · Units 1 & 2 — Digital Vector</title>
+<style>
+:root{
+  --bg:#1e1e1e; --bg2:#252526; --bg3:#2d2d30; --titlebar:#323233; --activitybar:#333333;
+  --sidebar:#252526; --editor:#1e1e1e; --tabbar:#2d2d30; --tab-active:#1e1e1e;
+  --border:#3c3c3c; --border2:#454545;
+  --fg:#cccccc; --fg-dim:#9d9d9d; --fg-faint:#6e7681; --fg-bright:#ffffff;
+  --accent:#4fc1ff; --accent-soft:rgba(79,193,255,.14);
+  --rose:#fb7185; --amber:#fbbf24; --blue:#4fc1ff; --emerald:#34d399;
+  --shadow:0 8px 30px rgba(0,0,0,.45);
+  --radius:8px; --fs:15px;
+  --mono:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;
+  --sans:"Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;
+}
+[data-theme="light"]{
+  --bg:#ffffff; --bg2:#f3f3f3; --bg3:#ececec; --titlebar:#dddddd; --activitybar:#2c2c2c;
+  --sidebar:#f3f3f3; --editor:#ffffff; --tabbar:#ececec; --tab-active:#ffffff;
+  --border:#e0e0e0; --border2:#d0d0d0;
+  --fg:#3b3b3b; --fg-dim:#616161; --fg-faint:#8a8a8a; --fg-bright:#1a1a1a;
+  --accent-soft:rgba(0,103,184,.10);
+  --shadow:0 8px 30px rgba(0,0,0,.14);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:var(--sans);font-size:var(--fs);color:var(--fg);background:var(--bg);
+  overflow:hidden;display:flex;flex-direction:column;-webkit-font-smoothing:antialiased}
+
+/* ---------- title bar ---------- */
+.titlebar{height:38px;background:var(--titlebar);display:flex;align-items:center;
+  padding:0 10px;gap:12px;flex-shrink:0;border-bottom:1px solid var(--border);user-select:none}
+.traffic{display:flex;gap:8px;padding:0 4px}
+.traffic i{width:12px;height:12px;border-radius:50%;display:block}
+.traffic i:nth-child(1){background:#ff5f57}.traffic i:nth-child(2){background:#febc2e}.traffic i:nth-child(3){background:#28c840}
+.title-center{flex:1;text-align:center;font-size:12.5px;color:var(--fg-dim);
+  display:flex;align-items:center;justify-content:center;gap:8px;overflow:hidden;white-space:nowrap}
+.dv-mark{display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:var(--fg-dim)}
+.dv-mark svg{display:block}
+.dv-mark b{color:var(--fg);font-weight:600}
+.tb-actions{display:flex;align-items:center;gap:4px}
+.tb-btn{background:none;border:none;color:var(--fg-dim);cursor:pointer;width:30px;height:26px;
+  border-radius:5px;font-size:13px;display:flex;align-items:center;justify-content:center}
+.tb-btn:hover{background:rgba(127,127,127,.18);color:var(--fg-bright)}
+.tb-btn.wide{width:auto;padding:0 8px;gap:4px;font-size:12px}
+
+/* ---------- body grid ---------- */
+.shell{flex:1;display:flex;min-height:0}
+.activitybar{width:48px;background:var(--activitybar);display:flex;flex-direction:column;
+  align-items:center;padding:8px 0;gap:4px;flex-shrink:0}
+.act{width:40px;height:40px;border:none;background:none;cursor:pointer;border-radius:6px;
+  color:#bdbdbd;display:flex;align-items:center;justify-content:center;position:relative}
+.act:hover{color:#fff}
+.act.active{color:#fff}
+.act.active::before{content:"";position:absolute;left:-8px;top:8px;bottom:8px;width:2px;background:#fff;border-radius:2px}
+.act svg{width:22px;height:22px}
+.act-spacer{flex:1}
+
+.sidebar{width:300px;background:var(--sidebar);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;flex-shrink:0;min-height:0}
+.sidebar.collapsed{display:none}
+.sb-head{padding:10px 16px 6px;font-size:11px;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--fg-faint);display:flex;align-items:center;justify-content:space-between}
+.sb-search{margin:4px 12px 8px;position:relative}
+.sb-search input{width:100%;background:var(--bg);border:1px solid var(--border2);color:var(--fg);
+  border-radius:5px;padding:6px 28px 6px 28px;font-size:12.5px;font-family:var(--sans);outline:none}
+.sb-search input:focus{border-color:var(--accent)}
+.sb-search .si{position:absolute;left:8px;top:50%;transform:translateY(-50%);color:var(--fg-faint);font-size:12px}
+.sb-search .sclear{position:absolute;right:6px;top:50%;transform:translateY(-50%);color:var(--fg-faint);
+  cursor:pointer;border:none;background:none;font-size:14px;display:none}
+.tree{flex:1;overflow-y:auto;padding:2px 0 24px}
+.tree::-webkit-scrollbar{width:10px}.tree::-webkit-scrollbar-thumb{background:var(--border2);border-radius:6px}
+
+.unit-label{padding:10px 16px 3px;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--fg-faint)}
+.grp{user-select:none}
+.grp-head{display:flex;align-items:center;gap:6px;padding:5px 12px 5px 14px;cursor:pointer;
+  font-size:13.5px;color:var(--fg);position:relative}
+.grp-head:hover{background:rgba(127,127,127,.10)}
+.grp-head .chev{transition:transform .15s;font-size:10px;color:var(--fg-faint);width:10px;flex-shrink:0}
+.grp.open .chev{transform:rotate(90deg)}
+.grp-head .gname{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.grp-head .gcode{font-family:var(--mono);font-size:10px;color:var(--fg-faint);
+  border:1px solid var(--border2);border-radius:4px;padding:1px 5px}
+.dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.kids{display:none}.grp.open .kids{display:block}
+.leaf{display:flex;align-items:center;gap:8px;padding:4px 12px 4px 34px;cursor:pointer;
+  font-size:13px;color:var(--fg-dim);position:relative}
+.leaf:hover{background:rgba(127,127,127,.10);color:var(--fg)}
+.leaf.sel{background:var(--accent-soft);color:var(--fg-bright)}
+.leaf.sel::before{content:"";position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--accent)}
+.leaf .knum{font-family:var(--mono);font-size:10.5px;color:var(--fg-faint);flex-shrink:0;min-width:34px}
+.leaf .kt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.leaf .built{margin-left:auto;width:6px;height:6px;border-radius:50%;background:#28c840;flex-shrink:0;display:none}
+.leaf.is-built .built{display:block}
+.fileicon{width:14px;flex-shrink:0;color:var(--fg-faint)}
+
+/* ---------- editor / content ---------- */
+.editor{flex:1;display:flex;flex-direction:column;min-width:0;background:var(--editor)}
+.tabbar{height:36px;background:var(--tabbar);display:flex;align-items:stretch;flex-shrink:0;
+  border-bottom:1px solid var(--border);overflow-x:auto}
+.tabbar::-webkit-scrollbar{height:0}
+.etab{display:flex;align-items:center;gap:7px;padding:0 12px;cursor:pointer;font-size:12.5px;
+  color:var(--fg-faint);border-right:1px solid var(--border);white-space:nowrap;position:relative;max-width:230px}
+.etab.active{background:var(--tab-active);color:var(--fg-bright)}
+.etab.active::after{content:"";position:absolute;top:0;left:0;right:0;height:2px;background:var(--tabaccent,var(--accent))}
+.etab .x{opacity:.5;border:none;background:none;color:inherit;cursor:pointer;font-size:14px;
+  border-radius:3px;width:16px;height:16px;line-height:1;display:flex;align-items:center;justify-content:center}
+.etab .x:hover{opacity:1;background:rgba(127,127,127,.25)}
+.etab .ti{overflow:hidden;text-overflow:ellipsis}
+.content{flex:1;overflow-y:auto;position:relative}
+.content::-webkit-scrollbar{width:12px}.content::-webkit-scrollbar-thumb{background:var(--border2);border-radius:6px}
+
+.viewer{position:absolute;inset:0;border:none;width:100%;height:100%;background:#fff;display:none}
+.viewer.show{display:block}
+
+/* ---------- welcome ---------- */
+.pad{padding:42px 48px 80px;max-width:1080px;margin:0 auto}
+.hero h1{font-size:30px;font-weight:300;color:var(--fg-bright);letter-spacing:-.4px}
+.hero h1 b{font-weight:700}
+.hero .sub{margin-top:8px;color:var(--fg-dim);font-size:14.5px}
+.hero .pills{margin-top:18px;display:flex;flex-wrap:wrap;gap:8px}
+.hpill{font-size:12px;border:1px solid var(--border2);border-radius:20px;padding:5px 13px;
+  color:var(--fg-dim);display:flex;align-items:center;gap:7px}
+.hpill .dot{width:8px;height:8px}
+.divider{height:1px;background:var(--border);margin:30px 0}
+
+.sect-h{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--fg-faint);margin-bottom:14px}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(248px,1fr));gap:14px}
+.ccard{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
+  padding:16px 16px 15px;cursor:pointer;transition:transform .12s,border-color .12s,box-shadow .12s;
+  position:relative;overflow:hidden}
+.ccard:hover{transform:translateY(-2px);box-shadow:var(--shadow);border-color:var(--caccent)}
+.ccard .bar{position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--caccent)}
+.ccard .ctop{display:flex;align-items:center;gap:9px;margin-bottom:9px}
+.ccard .ccode{font-family:var(--mono);font-size:10.5px;color:var(--caccent);
+  border:1px solid var(--caccent);border-radius:5px;padding:2px 7px;font-weight:600}
+.ccard .cunit{font-size:11px;color:var(--fg-faint);text-transform:uppercase;letter-spacing:.06em}
+.ccard h3{font-size:17px;color:var(--fg-bright);font-weight:600;margin-bottom:7px}
+.ccard p{font-size:12.8px;color:var(--fg-dim);line-height:1.5}
+.ccard .cmeta{margin-top:12px;display:flex;align-items:center;justify-content:space-between;
+  font-size:11.5px;color:var(--fg-faint)}
+.ccard .cmeta b{color:var(--caccent)}
+
+/* ---------- chapter overview ---------- */
+.ov-head{display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap}
+.ov-badge{font-family:var(--mono);font-size:13px;font-weight:700;color:#fff;
+  background:var(--caccent);border-radius:9px;padding:7px 12px;flex-shrink:0}
+.ov-titles h2{font-size:25px;color:var(--fg-bright);font-weight:700}
+.ov-titles .ov-meta{color:var(--fg-dim);font-size:13px;margin-top:3px}
+.ov-block{background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--caccent);
+  border-radius:var(--radius);padding:15px 18px;margin-top:18px}
+.ov-block .lbl{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--caccent);
+  font-weight:600;margin-bottom:6px}
+.ov-block p{color:var(--fg);font-size:14px;line-height:1.55}
+.ov-block.assess p{color:var(--fg-dim);font-size:13px}
+
+.kk-list{margin-top:24px;display:flex;flex-direction:column;gap:9px}
+.kk-row{display:flex;align-items:center;gap:14px;background:var(--bg2);border:1px solid var(--border);
+  border-radius:7px;padding:12px 15px;cursor:pointer;transition:border-color .12s,background .12s;text-align:left}
+.kk-row:hover{border-color:var(--caccent);background:var(--bg3)}
+.kk-row .kn{font-family:var(--mono);font-size:12px;font-weight:700;color:var(--caccent);
+  min-width:42px;flex-shrink:0}
+.kk-row .kc{flex:1;min-width:0}
+.kk-row .kc h4{font-size:14.5px;color:var(--fg-bright);font-weight:600;margin-bottom:2px}
+.kk-row .kc p{font-size:12.6px;color:var(--fg-dim);line-height:1.45}
+.kk-row .karrow{color:var(--fg-faint);flex-shrink:0;font-size:16px}
+.kk-row:hover .karrow{color:var(--caccent)}
+.kk-row .kstatus{font-size:10px;font-family:var(--mono);padding:2px 7px;border-radius:10px;flex-shrink:0;
+  border:1px solid var(--border2);color:var(--fg-faint)}
+.kk-row.is-built .kstatus{border-color:#28c840;color:#28c840}
+
+/* ---------- module-in-progress panel ---------- */
+.mip{max-width:680px;margin:60px auto;text-align:center;padding:0 30px}
+.mip .micon{width:74px;height:74px;border-radius:18px;background:var(--caccent);opacity:.16;margin:0 auto 22px;
+  display:flex;align-items:center;justify-content:center}
+.mip .mwrap{position:relative}
+.mip .msvg{position:absolute;top:14px;left:50%;transform:translateX(-50%);color:var(--caccent)}
+.mip .mcode{font-family:var(--mono);font-size:13px;color:var(--caccent);font-weight:700;
+  border:1px solid var(--caccent);border-radius:6px;padding:3px 10px;display:inline-block;margin-bottom:14px}
+.mip h2{font-size:23px;color:var(--fg-bright);font-weight:700;margin-bottom:10px}
+.mip p{color:var(--fg-dim);font-size:14px;line-height:1.6;margin-bottom:8px}
+.mip .fname{font-family:var(--mono);font-size:12.5px;color:var(--fg);background:var(--bg2);
+  border:1px solid var(--border);border-radius:6px;padding:8px 12px;display:inline-block;margin:14px 0}
+.mip .mbtns{margin-top:22px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.mbtn{font-size:13px;padding:9px 18px;border-radius:7px;border:1px solid var(--border2);
+  background:var(--bg2);color:var(--fg);cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:7px}
+.mbtn:hover{border-color:var(--caccent);color:var(--fg-bright)}
+.mbtn.primary{background:var(--caccent);border-color:var(--caccent);color:#10242e;font-weight:600}
+.mbtn.primary:hover{filter:brightness(1.08);color:#10242e}
+
+.empty{padding:80px 30px;text-align:center;color:var(--fg-faint)}
+.empty svg{opacity:.4;margin-bottom:14px}
+
+/* ---------- status bar ---------- */
+.statusbar{height:24px;background:var(--accent);color:#10242e;display:flex;align-items:center;
+  padding:0 12px;font-size:11.5px;gap:16px;flex-shrink:0;font-weight:500}
+[data-theme="light"] .statusbar{color:#fff}
+.statusbar .si{display:flex;align-items:center;gap:5px}
+.statusbar .sright{margin-left:auto;display:flex;gap:16px}
+
+@media(max-width:760px){
+  .sidebar{position:absolute;z-index:30;height:calc(100% - 62px);box-shadow:var(--shadow)}
+  .pad{padding:28px 20px 70px}
+  .title-center .longt{display:none}
+}
+</style>
+</head>
+<body>
+
+<!-- TITLE BAR -->
+<div class="titlebar">
+  <div class="traffic"><i></i><i></i><i></i></div>
+  <div class="title-center">
+    <a class="dv-mark" href="https://digitalvector.com.au" target="_blank" rel="noopener" title="Visit digitalvector.com.au">
+      <svg width="16" height="16" viewBox="0 0 32 32" fill="none"><path d="M4 4h12c8 0 12 5 12 12s-4 12-12 12H4V4z" stroke="currentColor" stroke-width="2.5" fill="none"/><path d="M16 10l6 6-6 6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <b>Digital Vector</b>
+    </a>
+    <span class="longt">— VCE Applied Computing · Units 1 &amp; 2</span>
+  </div>
+  <div class="tb-actions">
+    <button class="tb-btn" id="fontDown" title="Decrease text size">A−</button>
+    <button class="tb-btn" id="fontUp" title="Increase text size">A+</button>
+    <button class="tb-btn wide" id="themeToggle" title="Toggle theme"><span id="themeIcon">☾</span><span id="themeTxt">Dark</span></button>
+  </div>
+</div>
+
+<div class="shell">
+  <!-- ACTIVITY BAR -->
+  <div class="activitybar">
+    <button class="act active" data-view="explorer" title="Explorer">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 7l2-3h5l2 3h7a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/></svg>
+    </button>
+    <button class="act" data-view="search" title="Search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3" stroke-linecap="round"/></svg>
+    </button>
+    <div class="act-spacer"></div>
+    <button class="act" data-view="about" title="About this course">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.5v.5" stroke-linecap="round"/></svg>
+    </button>
+  </div>
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sb-head"><span>Explorer · Applied Computing</span></div>
+    <div class="sb-search">
+      <span class="si">🔍</span>
+      <input id="search" type="text" placeholder="Search key knowledge…" autocomplete="off">
+      <button class="sclear" id="sclear" title="Clear">×</button>
+    </div>
+    <div class="tree" id="tree"></div>
+  </aside>
+
+  <!-- EDITOR -->
+  <main class="editor">
+    <div class="tabbar" id="tabbar"></div>
+    <div class="content" id="content"></div>
+    <iframe class="viewer" id="viewer" title="Module viewer"></iframe>
+  </main>
+</div>
+
+<!-- STATUS BAR -->
+<div class="statusbar">
+  <span class="si">⚡ Digital Vector</span>
+  <span class="si" id="stUnit">Units 1 &amp; 2 · Year 11</span>
+  <div class="sright">
+    <span class="si" id="stCount"></span>
+    <span class="si">VCAA Study Design 2025–2028</span>
+    <span class="si">en-AU</span>
+  </div>
+</div>
+
+<script>
+const DATA = {"foundations": [{"id": "psm", "title": "Problem-solving methodology", "blurb": "The four stages — analysis, design, development and evaluation — that underpin every outcome in this course.", "file": "foundations-psm.html"}, {"id": "glossary", "title": "Key terms & glossary", "blurb": "Definitions of the examinable terms used across Units 1 & 2, with the exact wording examiners expect.", "file": "foundations-glossary.html"}], "chapters": [{"id": "u1o1", "unit": "Unit 1", "code": "U1·O1", "aos": "Area of Study 1", "name": "Data Analysis", "accent": "#fbbf24", "outcome": "Interpret teacher-provided solution requirements and designs, analyse data, and develop data visualisations to present findings.", "assess": "School-based assessment. Levels of achievement for Units 1 & 2 are decided by the school and are not reported to the VCAA.", "kk": [{"num": "KK01", "title": "Qualitative & quantitative data", "blurb": "Types and purposes of data — interviews, surveys, sensor data, census/demographic data, time-series and AI-generated data.", "file": "u1o1-kk01.html"}, {"num": "KK02", "title": "Characteristics of data types", "blurb": "Text (character, string), numeric (integer, floating point, date/time) and Boolean — matched to the chosen software tools.", "file": "u1o1-kk02.html"}, {"num": "KK03", "title": "Quality of data & information", "blurb": "The factors that make data trustworthy: accuracy, bias, integrity, relevance and reliability.", "file": "u1o1-kk03.html"}, {"num": "KK04", "title": "Characteristics of data & information", "blurb": "Size, structure, relevance, accessibility, clarity and context.", "file": "u1o1-kk04.html"}, {"num": "KK05", "title": "Australian Privacy Principles", "blurb": "Applying key APPs from the Privacy Act 1988 (Cwlth) — non-identification (APP 2), primary purpose (APP 6) and security (APP 11).", "file": "u1o1-kk05.html"}, {"num": "KK06", "title": "Ethical issues with data", "blurb": "Transparency, inaccurate/incomplete data, ownership and control, misuse of personal data, and AI repurposing and sharing.", "file": "u1o1-kk06.html"}, {"num": "KK07", "title": "APA referencing", "blurb": "Referencing primary and secondary sources with the APA system to acknowledge intellectual property.", "file": "u1o1-kk07.html"}, {"num": "KK08", "title": "Requirements, constraints & scope", "blurb": "Distinguishing functional and non-functional requirements, constraints and scope.", "file": "u1o1-kk08.html"}, {"num": "KK09", "title": "Design tools for solutions", "blurb": "IPO charts, annotated diagrams, mock-ups and query designs for databases, spreadsheets and visualisations.", "file": "u1o1-kk09.html"}, {"num": "KK10", "title": "Relational database structure", "blurb": "Structural characteristics of an RDBMS — tables, queries, and relationships via primary and foreign keys.", "file": "u1o1-kk10.html"}, {"num": "KK11", "title": "Spreadsheet structure", "blurb": "Structural characteristics of spreadsheets — rows, columns and cells.", "file": "u1o1-kk11.html"}, {"num": "KK12", "title": "Manipulating & validating data", "blurb": "Functions and techniques to manipulate, validate and test data: formulas/functions, charts/graphs and SQL queries.", "file": "u1o1-kk12.html"}, {"num": "KK13", "title": "Descriptive statistics", "blurb": "Using spreadsheet functions to calculate average, median, count/frequency and standard deviation.", "file": "u1o1-kk13.html"}, {"num": "KK14", "title": "Purposes of data visualisations", "blurb": "Educating, entertaining, informing and persuading an audience.", "file": "u1o1-kk14.html"}, {"num": "KK15", "title": "Types of data visualisations", "blurb": "Long-form infographics, series of infographic posters and dashboards.", "file": "u1o1-kk15.html"}, {"num": "KK16", "title": "Components of visualisations", "blurb": "Text and graphics, tables, and charts and graphs.", "file": "u1o1-kk16.html"}, {"num": "KK17", "title": "Formats & conventions", "blurb": "Consistent naming conventions for databases and spreadsheets, and the use of colour, fonts, images and icons.", "file": "u1o1-kk17.html"}]}, {"id": "u1o2", "unit": "Unit 1", "code": "U1·O2", "aos": "Area of Study 2", "name": "Programming", "accent": "#4fc1ff", "outcome": "Interpret teacher-provided solution requirements to design and develop a software solution using an object-oriented programming language.", "assess": "School-based assessment. Levels of achievement for Units 1 & 2 are decided by the school and are not reported to the VCAA.", "kk": [{"num": "KK01", "title": "Emerging trends & AI", "blurb": "Trends in programming languages and AI-based code generators — low-code approaches and readability/maintainability gains.", "file": "u1o2-kk01.html"}, {"num": "KK02", "title": "Characteristics of data types", "blurb": "Text (character, string), numeric (integer, floating point, date/time) and Boolean.", "file": "u1o2-kk02.html"}, {"num": "KK03", "title": "Data structures", "blurb": "One-dimensional arrays, lists, and records (varying data types, field index).", "file": "u1o2-kk03.html"}, {"num": "KK04", "title": "Requirements, constraints & scope", "blurb": "Functional and non-functional requirements, constraints and scope for a software solution.", "file": "u1o2-kk04.html"}, {"num": "KK05", "title": "Design tools", "blurb": "Mock-ups, IPO charts and flowcharts/pseudocode for representing a solution.", "file": "u1o2-kk05.html"}, {"num": "KK06", "title": "IP & copyright law", "blurb": "Key legal requirements relating to intellectual property and copyright when designing and developing software.", "file": "u1o2-kk06.html"}, {"num": "KK07", "title": "Principles of OOP", "blurb": "Abstraction and encapsulation as the foundations of object-oriented programming.", "file": "u1o2-kk07.html"}, {"num": "KK08", "title": "Features of a language", "blurb": "Variables, control structures (sequence, selection, iteration), operators, and procedures/functions/methods.", "file": "u1o2-kk08.html"}, {"num": "KK09", "title": "Naming conventions", "blurb": "Naming solution elements using conventions such as Hungarian notation and camel casing.", "file": "u1o2-kk09.html"}, {"num": "KK10", "title": "Internal documentation", "blurb": "Why internal documentation matters — explaining data and code structures, and supporting maintenance.", "file": "u1o2-kk10.html"}, {"num": "KK11", "title": "Validation techniques", "blurb": "Existence checking, type checking and range checking.", "file": "u1o2-kk11.html"}, {"num": "KK12", "title": "Debugging & testing", "blurb": "Test tables (expected vs actual), constructing test data, breakpoints and debugging output statements.", "file": "u1o2-kk12.html"}]}, {"id": "u2o1", "unit": "Unit 2", "code": "U2·O1", "aos": "Area of Study 1", "name": "Innovative Solutions", "accent": "#34d399", "outcome": "In collaboration with other students, identify a problem, need or opportunity to analyse, design, develop and evaluate an innovative solution.", "assess": "School-based assessment. Levels of achievement for Units 1 & 2 are decided by the school and are not reported to the VCAA.", "kk": [{"num": "KK01", "title": "Drivers of innovation", "blurb": "How curiosity, ingenuity and the UN Sustainable Development Goals inspire and drive innovation.", "file": "u2o1-kk01.html"}, {"num": "KK02", "title": "Capabilities of digital systems", "blurb": "Functions and capabilities of systems used by people and organisations — assistive tech, financial services, GPS, robotics, traffic management.", "file": "u2o1-kk02.html"}, {"num": "KK03", "title": "Impact of emerging tech", "blurb": "Automation, cyberbullying, productivity, economic effects (deskilling, job loss, misuse) and declining human interaction.", "file": "u2o1-kk03.html"}, {"num": "KK04", "title": "Creative & innovative solutions", "blurb": "What makes a solution stand out: originality, effectiveness, user-centred design and disruptiveness.", "file": "u2o1-kk04.html"}, {"num": "KK05", "title": "Solution specifications", "blurb": "Functional and non-functional requirements, constraints and scope.", "file": "u2o1-kk05.html"}, {"num": "KK06", "title": "Collecting user needs", "blurb": "Methods for gathering user needs and requirements — interviews and surveys.", "file": "u2o1-kk06.html"}, {"num": "KK07", "title": "Design tools", "blurb": "Representing designs with mock-ups, pseudocode, sitemaps and storyboards.", "file": "u2o1-kk07.html"}, {"num": "KK08", "title": "Developing solutions", "blurb": "Empathising, ideating across perspectives, generating divergent ideas and developing the preferred idea.", "file": "u2o1-kk08.html"}, {"num": "KK09", "title": "Documenting progress", "blurb": "Gantt charts, project journals and version control for delegation and monitoring.", "file": "u2o1-kk09.html"}, {"num": "KK10", "title": "Testing & evaluating", "blurb": "User testing and expert review to test and evaluate an innovative solution.", "file": "u2o1-kk10.html"}, {"num": "KK11", "title": "Legislation & frameworks", "blurb": "How emerging tech is shaped by the AI Ethics Principles, Copyright Act 1968, Health Records Act 2001, Privacy Act 1988 and the PDP Act 2014.", "file": "u2o1-kk11.html"}, {"num": "KK12", "title": "Ethics of emerging tech", "blurb": "Cyber security threats, biometric data collection/storage and job displacement.", "file": "u2o1-kk12.html"}, {"num": "KK13", "title": "Ethics of AI", "blurb": "Biased or harmful content, content usable for cyber attacks, and generating content from copyright material.", "file": "u2o1-kk13.html"}, {"num": "KK14", "title": "Evaluation criteria", "blurb": "Criteria and techniques for evaluating the efficiency and effectiveness of an innovative solution.", "file": "u2o1-kk14.html"}]}, {"id": "u2o2", "unit": "Unit 2", "code": "U2·O2", "aos": "Area of Study 2", "name": "Cyber Security", "accent": "#fb7185", "outcome": "Respond to a teacher-provided case study to examine a cyber security incident or network vulnerability, evaluate threats, and propose strategies to protect data and information on the network.", "assess": "School-based assessment. Levels of achievement for Units 1 & 2 are decided by the school and are not reported to the VCAA.", "kk": [{"num": "KK01", "title": "Emerging trends in cyber security", "blurb": "Multi-factor authentication, regulatory compliance, AI threat detection, Zero Trust Architecture and cryptographic protection.", "file": "u2o2-kk01.html"}, {"num": "KK02", "title": "Network hardware & software", "blurb": "Routers, switches, firewalls, storage/backup systems, security software, and IDS/IPS.", "file": "u2o2-kk02.html"}, {"num": "KK03", "title": "Wired, wireless & mobile", "blurb": "Strengths and limitations measured by cost, data storage, reliability and security.", "file": "u2o2-kk03.html"}, {"num": "KK04", "title": "Intranets, internet & VPNs", "blurb": "The technical underpinnings of intranets, the internet and virtual private networks.", "file": "u2o2-kk04.html"}, {"num": "KK05", "title": "LANs, WANs & WPANs", "blurb": "Applications and capabilities of each network type.", "file": "u2o2-kk05.html"}, {"num": "KK06", "title": "Global network risks", "blurb": "Cyber security threats, data privacy, legal compliance and unauthorised access.", "file": "u2o2-kk06.html"}, {"num": "KK07", "title": "Malware", "blurb": "Technical underpinnings of spyware, viruses, worms and ransomware.", "file": "u2o2-kk07.html"}, {"num": "KK08", "title": "Security threats", "blurb": "Denial-of-service attacks, poor credential management, malicious software, outdated software and weak passwords.", "file": "u2o2-kk08.html"}, {"num": "KK09", "title": "Reducing risk", "blurb": "Firmware, multi-factor authentication, backups, OS and malware updates, and staff procedures.", "file": "u2o2-kk09.html"}, {"num": "KK10", "title": "Cryptography", "blurb": "Ciphers (Caesar, Vigenère, polyalphabetic), symmetric (AES) and asymmetric (ECDH, ECDSA, RSA) encryption.", "file": "u2o2-kk10.html"}, {"num": "KK11", "title": "AI in network security", "blurb": "Machine-learning analysis of traffic patterns and real-time monitoring and notification.", "file": "u2o2-kk11.html"}, {"num": "KK12", "title": "Ethical hacking", "blurb": "The role of ethical hacking in identifying vulnerabilities and weaknesses in networks.", "file": "u2o2-kk12.html"}, {"num": "KK13", "title": "Legislation & frameworks", "blurb": "Essential Eight, Health Records Act 2001, the ISM networking guidelines, Privacy Act 1988 and PDP Act 2014.", "file": "u2o2-kk13.html"}]}]};
+
+/* ---- which module files exist alongside index.html ----
+   Add a filename here once you've built that module and dropped it in the
+   same folder as index.html. Listed files open in the viewer; everything
+   else shows the chapter overview + "module in progress" panel.            */
+const BUILT = [
+  // e.g. "u2o2-kk01.html", "u1o1-kk01.html"
+];
+const isBuilt = f => BUILT.includes(f);
+
+/* flatten lookup */
+const MODS = {};
+DATA.foundations.forEach(m => MODS[m.file] = {kind:"foundation", ...m});
+DATA.chapters.forEach(ch => ch.kk.forEach(k => MODS[k.file] = {kind:"kk", chapter:ch, ...k}));
+
+let openTabs = [];      // array of {key, label, accent}
+let activeKey = "welcome";
+
+/* ---------- TREE ---------- */
+function buildTree(){
+  const t = document.getElementById("tree");
+  let html = "";
+  // Foundations
+  html += `<div class="grp open" data-grp="found">
+    <div class="grp-head"><span class="chev">▶</span><span class="dot" style="background:var(--fg-faint)"></span><span class="gname">Foundations</span></div>
+    <div class="kids">`;
+  DATA.foundations.forEach(m=>{
+    html += `<div class="leaf ${isBuilt(m.file)?'is-built':''}" data-file="${m.file}">
+      <svg class="fileicon" viewBox="0 0 16 16" fill="currentColor"><path d="M9 1H3.5L3 1.5v13l.5.5h9l.5-.5V5L9 1zm0 1.4L11.6 5H9V2.4zM4 14V2h4v3.5l.5.5H12v8H4z"/></svg>
+      <span class="knum">·</span><span class="kt">${m.title}</span><span class="built"></span></div>`;
+  });
+  html += `</div></div>`;
+
+  let lastUnit="";
+  DATA.chapters.forEach(ch=>{
+    if(ch.unit!==lastUnit){ html += `<div class="unit-label">${ch.unit}: Applied Computing</div>`; lastUnit=ch.unit; }
+    html += `<div class="grp" data-grp="${ch.id}" style="--caccent:${ch.accent}">
+      <div class="grp-head" data-chapter="${ch.id}">
+        <span class="chev">▶</span><span class="dot" style="background:${ch.accent}"></span>
+        <span class="gname">${ch.name}</span><span class="gcode">${ch.code}</span></div>
+      <div class="kids">`;
+    ch.kk.forEach(k=>{
+      const sx=(k.num+" "+k.title+" "+k.blurb).toLowerCase().replace(/"/g,'');
+      html += `<div class="leaf ${isBuilt(k.file)?'is-built':''}" data-file="${k.file}" data-search="${sx}" style="--accent:${ch.accent};--accent-soft:${hexA(ch.accent,.14)}">
+        <span class="knum">${k.num}</span><span class="kt">${k.title}</span><span class="built"></span></div>`;
+    });
+    html += `</div></div>`;
+  });
+  t.innerHTML = html;
+
+  // expand/collapse
+  t.querySelectorAll(".grp-head").forEach(h=>{
+    h.addEventListener("click",e=>{
+      if(e.target.closest("[data-chapter]") && !e.target.classList.contains("chev") && !e.target.classList.contains("gname") && false){}
+      const grp = h.closest(".grp");
+      const ch = h.dataset.chapter;
+      // toggle expand
+      grp.classList.toggle("open");
+      // also open the chapter overview when clicking a chapter row name
+      if(ch){ openChapter(ch); }
+    });
+  });
+  t.querySelectorAll(".leaf").forEach(l=>{
+    l.addEventListener("click",()=>openModule(l.dataset.file));
+  });
+
+  document.getElementById("stCount").textContent =
+    `${Object.keys(MODS).length-DATA.foundations.length} key-knowledge modules`;
+}
+
+function hexA(hex,a){const n=parseInt(hex.slice(1),16);return `rgba(${n>>16&255},${n>>8&255},${n&255},${a})`;}
+
+/* ---------- TABS ---------- */
+function renderTabs(){
+  const tb=document.getElementById("tabbar");
+  let html = tab("welcome","Welcome","",false);
+  openTabs.forEach(t=> html+=tab(t.key,t.label,t.accent,true));
+  tb.innerHTML=html;
+  tb.querySelectorAll(".etab").forEach(el=>{
+    el.addEventListener("click",e=>{
+      if(e.target.classList.contains("x")) return;
+      activate(el.dataset.key);
+    });
+    const x=el.querySelector(".x");
+    if(x) x.addEventListener("click",()=>closeTab(el.dataset.key));
+  });
+}
+function tab(key,label,accent,closable){
+  const a = activeKey===key?"active":"";
+  return `<div class="etab ${a}" data-key="${key}" style="--tabaccent:${accent||'var(--accent)'}">
+    <svg width="13" height="13" viewBox="0 0 16 16" fill="${accent||'#888'}"><rect x="2" y="2" width="12" height="12" rx="2"/></svg>
+    <span class="ti">${label}</span>${closable?'<button class="x" title="Close">×</button>':''}</div>`;
+}
+function closeTab(key){
+  openTabs=openTabs.filter(t=>t.key!==key);
+  if(activeKey===key) activeKey = openTabs.length?openTabs[openTabs.length-1].key:"welcome";
+  renderTabs(); render();
+}
+function activate(key){activeKey=key;renderTabs();render();}
+
+/* ---------- OPENERS ---------- */
+function openChapter(id){
+  const ch=DATA.chapters.find(c=>c.id===id);
+  const key="ch:"+id;
+  if(!openTabs.find(t=>t.key===key)) openTabs.push({key,label:ch.name,accent:ch.accent});
+  activate(key);
+}
+function openModule(file){
+  const m=MODS[file]; if(!m) return;
+  const key="mod:"+file;
+  const accent = m.kind==="kk"?m.chapter.accent:"#9d9d9d";
+  const label = m.kind==="kk"?(m.num+" "+m.title):m.title;
+  if(!openTabs.find(t=>t.key===key)) openTabs.push({key,label,accent});
+  activate(key);
+  // reflect selection in tree
+  document.querySelectorAll(".leaf").forEach(l=>l.classList.toggle("sel",l.dataset.file===file));
+  // ensure parent group open
+  const esc = (window.CSS && CSS.escape) ? CSS.escape(file) : file.replace(/["\\]/g,'\\$&');
+  const leaf=document.querySelector(`.leaf[data-file="${esc}"]`);
+  if(leaf) leaf.closest(".grp")?.classList.add("open");
+}
+
+/* ---------- RENDER ---------- */
+function render(){
+  const c=document.getElementById("content");
+  const v=document.getElementById("viewer");
+  v.classList.remove("show"); v.src="about:blank"; c.style.display="block";
+
+  if(activeKey==="welcome"){ c.innerHTML=welcomeHTML(); wireCards(); return; }
+  if(activeKey==="about"){ c.innerHTML=aboutHTML(); return; }
+  if(activeKey.startsWith("ch:")){ c.innerHTML=chapterHTML(activeKey.slice(3)); wireKK(); return; }
+  if(activeKey.startsWith("mod:")){
+    const file=activeKey.slice(4); const m=MODS[file];
+    if(isBuilt(file)){ c.style.display="none"; v.src=file; v.classList.add("show"); }
+    else { c.innerHTML=mipHTML(m,file); }
+    return;
+  }
+}
+
+function welcomeHTML(){
+  const chips = DATA.chapters.map(ch=>
+    `<span class="hpill"><span class="dot" style="background:${ch.accent}"></span>${ch.code} · ${ch.name}</span>`).join("");
+  let cards = DATA.chapters.map(ch=>{
+    return `<div class="ccard" data-chapter="${ch.id}" style="--caccent:${ch.accent}">
+      <div class="bar"></div>
+      <div class="ctop"><span class="ccode">${ch.code}</span><span class="cunit">${ch.unit} · ${ch.aos}</span></div>
+      <h3>${ch.name}</h3>
+      <p>${ch.outcome}</p>
+      <div class="cmeta"><span><b>${ch.kk.length}</b> key-knowledge modules</span><span>Open →</span></div>
+    </div>`;
+  }).join("");
+  let found = DATA.foundations.map(m=>
+    `<div class="ccard" data-file="${m.file}" style="--caccent:var(--fg-faint)">
+       <div class="bar"></div><h3 style="font-size:15px">${m.title}</h3><p>${m.blurb}</p></div>`).join("");
+  return `<div class="pad">
+    <div class="hero">
+      <h1>VCE <b>Applied Computing</b></h1>
+      <div class="sub">Units 1 &amp; 2 · Year 11 · PVCC Digital Technologies · Study Design 2025–2028</div>
+      <div class="pills">${chips}</div>
+    </div>
+    <div class="divider"></div>
+    <div class="sect-h">The four outcomes</div>
+    <div class="cards">${cards}</div>
+    <div class="divider"></div>
+    <div class="sect-h">Foundations</div>
+    <div class="cards">${found}</div>
+  </div>`;
+}
+function wireCards(){
+  document.querySelectorAll(".ccard[data-chapter]").forEach(el=>
+    el.addEventListener("click",()=>openChapter(el.dataset.chapter)));
+  document.querySelectorAll(".ccard[data-file]").forEach(el=>
+    el.addEventListener("click",()=>openModule(el.dataset.file)));
+}
+
+function chapterHTML(id){
+  const ch=DATA.chapters.find(c=>c.id===id);
+  const rows = ch.kk.map(k=>`
+    <button class="kk-row ${isBuilt(k.file)?'is-built':''}" data-file="${k.file}">
+      <span class="kn">${k.num}</span>
+      <span class="kc"><h4>${k.title}</h4><p>${k.blurb}</p></span>
+      <span class="kstatus">${isBuilt(k.file)?'ready':'soon'}</span>
+      <span class="karrow">→</span>
+    </button>`).join("");
+  return `<div class="pad" style="--caccent:${ch.accent}">
+    <div class="ov-head">
+      <span class="ov-badge">${ch.code}</span>
+      <div class="ov-titles"><h2>${ch.name}</h2>
+        <div class="ov-meta">${ch.unit}: Applied Computing · ${ch.aos}</div></div>
+    </div>
+    <div class="ov-block"><div class="lbl">Outcome</div><p>${ch.outcome}</p></div>
+    <div class="ov-block assess"><div class="lbl">Assessment</div><p>${ch.assess}</p></div>
+    <div class="sect-h" style="margin-top:30px">Key knowledge · ${ch.kk.length} modules</div>
+    <div class="kk-list">${rows}</div>
+  </div>`;
+}
+function wireKK(){
+  document.querySelectorAll(".kk-row").forEach(el=>
+    el.addEventListener("click",()=>openModule(el.dataset.file)));
+}
+
+function mipHTML(m,file){
+  const ch=m.chapter; const accent=ch?ch.accent:"#9d9d9d";
+  const code = m.kind==="kk"?`${ch.code} · ${m.num}`:"Foundations";
+  return `<div class="pad" style="--caccent:${accent}">
+    <div class="mip">
+      <div class="mwrap">
+        <div class="micon"></div>
+        <svg class="msvg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+          <path d="M3 7l2-3h5l2 3h7a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/></svg>
+      </div>
+      <div class="mcode">${code}</div>
+      <h2>${m.title}</h2>
+      <p>${m.blurb}</p>
+      <p style="color:var(--fg-faint);font-size:13px">This interactive module is part of the build queue. Once its file is created and placed alongside <b>index.html</b>, it will open right here in the workspace.</p>
+      <div class="fname">${file}</div>
+      <div class="mbtns">
+        ${ch?`<button class="mbtn" onclick="openChapter('${ch.id}')">← Back to ${ch.name}</button>`:''}
+        <a class="mbtn primary" href="${file}" target="_blank" rel="noopener">Try opening anyway ↗</a>
+      </div>
+    </div>
+  </div>`;
+}
+
+function aboutHTML(){
+  const total = Object.keys(MODS).length-DATA.foundations.length;
+  return `<div class="pad">
+    <div class="hero"><h1>About this <b>course hub</b></h1>
+    <div class="sub">A single-file, offline navigation hub for the Digital Vector Applied Computing suite.</div></div>
+    <div class="divider"></div>
+    <div class="ov-block"><div class="lbl">Structure</div>
+      <p>This hub maps directly to the VCAA VCE Applied Computing Study Design (2025–2028). Each of the four outcomes is a chapter; each examinable key-knowledge point is a module. There are ${total} key-knowledge modules in total, plus the shared Foundations material.</p></div>
+    <div class="ov-block"><div class="lbl">How modules load</div>
+      <p>Build each interactive module as its own single-file HTML and drop it in the same folder as this index. Add its filename to the <b>BUILT</b> list near the top of the script, and it will open inside the workspace. Anything not yet built shows its overview and an expected filename.</p></div>
+    <div class="ov-block"><div class="lbl">Filenames</div>
+      <p>Modules follow the pattern <b>&lt;outcome&gt;-kk&lt;nn&gt;.html</b> — for example <b>u2o2-kk01.html</b> for Cyber Security KK01, or <b>u1o1-kk05.html</b> for Data Analysis KK05.</p></div>
+  </div>`;
+}
+
+/* ---------- ACTIVITY BAR + SEARCH ---------- */
+document.querySelectorAll(".act").forEach(a=>{
+  a.addEventListener("click",()=>{
+    const v=a.dataset.view;
+    if(v==="about"){ document.querySelectorAll(".act").forEach(x=>x.classList.remove("active")); a.classList.add("active"); activate("about"); return; }
+    document.querySelectorAll(".act").forEach(x=>x.classList.remove("active")); a.classList.add("active");
+    document.getElementById("sidebar").classList.remove("collapsed");
+    if(v==="search"){ document.getElementById("search").focus(); }
+  });
+});
+
+const search=document.getElementById("search");
+const sclear=document.getElementById("sclear");
+search.addEventListener("input",()=>{
+  const q=search.value.trim().toLowerCase();
+  sclear.style.display=q?"block":"none";
+  document.querySelectorAll(".grp").forEach(g=>{
+    let any=false;
+    g.querySelectorAll(".leaf").forEach(l=>{
+      const hay = (l.dataset.search || l.querySelector(".kt").textContent.toLowerCase());
+      const hit = !q || hay.includes(q) || l.querySelector(".knum").textContent.toLowerCase().includes(q);
+      l.style.display = hit?"flex":"none"; if(hit) any=true;
+    });
+    g.style.display = any?"block":"none";
+    if(q && any) g.classList.add("open");
+  });
+  document.querySelectorAll(".unit-label").forEach(u=>u.style.display=q?"none":"block");
+});
+sclear.addEventListener("click",()=>{search.value="";search.dispatchEvent(new Event("input"));search.focus();});
+
+/* ---------- THEME + FONT ---------- */
+const root=document.documentElement;
+function setTheme(t){
+  root.dataset.theme=t;
+  document.getElementById("themeIcon").textContent = t==="dark"?"☾":"☀";
+  document.getElementById("themeTxt").textContent = t==="dark"?"Dark":"Light";
+  try{localStorage.setItem("ac12-theme",t);}catch(e){}
+}
+document.getElementById("themeToggle").addEventListener("click",()=>setTheme(root.dataset.theme==="dark"?"light":"dark"));
+let fs=15;
+function setFont(n){fs=Math.max(12,Math.min(20,n));root.style.setProperty("--fs",fs+"px");try{localStorage.setItem("ac12-fs",fs);}catch(e){}}
+document.getElementById("fontUp").addEventListener("click",()=>setFont(fs+1));
+document.getElementById("fontDown").addEventListener("click",()=>setFont(fs-1));
+
+/* ---------- INIT ---------- */
+try{
+  const st=localStorage.getItem("ac12-theme"); if(st) setTheme(st); else setTheme("dark");
+  const sfs=parseInt(localStorage.getItem("ac12-fs")); if(sfs) setFont(sfs);
+}catch(e){ setTheme("dark"); }
+buildTree();
+renderTabs();
+render();
+</script>
+</body>
+</html>
