@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en-AU" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Problem-solving methodology · Foundations — Digital Vector</title>
+<style>
+:root{
+  --bg:#1b2030; --bg2:#222838; --bg3:#2a3142; --border:#333c50; --border2:#3d465c;
+  --fg:#d6dbe6; --fg-dim:#9aa3b5; --fg-faint:#6b7488; --fg-bright:#ffffff;
+  --accent:#a78bfa; --accent2:#22d3ee;
+  --sans:"Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;
+  --mono:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:var(--sans);color:var(--fg);background:var(--bg);line-height:1.6;
+  -webkit-font-smoothing:antialiased;font-size:15px}
+.wrap{max-width:1080px;margin:0 auto;padding:30px 28px 90px}
+a{color:var(--accent);text-decoration:none}
+
+.phead{position:relative;border-radius:16px;overflow:hidden;padding:30px 30px 26px;
+  background:linear-gradient(135deg,#a78bfa1f,#22d3ee14);border:1px solid var(--border)}
+.phead .eyebrow{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);
+  font-weight:700;margin-bottom:8px}
+.phead h1{font-size:30px;font-weight:800;color:var(--fg-bright);letter-spacing:-.5px;line-height:1.15}
+.phead p{margin-top:10px;color:var(--fg-dim);font-size:15px;max-width:760px}
+
+.stagebar{display:flex;gap:10px;margin:24px 0 8px;flex-wrap:wrap}
+.stagebar .sp{flex:1;min-width:150px;border-radius:12px;padding:13px 15px;border:1px solid var(--border);
+  background:var(--bg2);position:relative;overflow:hidden}
+.stagebar .sp .n{font-family:var(--mono);font-size:11px;color:var(--fg-faint)}
+.stagebar .sp .t{font-weight:700;color:var(--fg-bright);font-size:15px;margin-top:3px}
+.stagebar .sp .d{font-size:12px;color:var(--fg-dim);margin-top:4px}
+.stagebar .sp .bar{position:absolute;left:0;top:0;bottom:0;width:4px}
+
+h2.sec{font-size:21px;color:var(--fg-bright);font-weight:700;margin:36px 0 4px;
+  padding-bottom:8px;border-bottom:2px solid var(--accent);display:inline-block}
+.sec-wrap{scroll-margin-top:20px}
+h3.sub{font-size:16px;color:var(--fg-bright);font-weight:700;margin:22px 0 8px}
+p.lead{color:var(--fg-dim);margin:6px 0 12px}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px;margin:10px 0}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:11px;padding:14px 15px;
+  border-left:3px solid var(--accent)}
+.card .term{font-weight:700;color:var(--fg-bright);font-size:14.5px;margin-bottom:4px}
+.card .desc{font-size:13.3px;color:var(--fg-dim)}
+.card .links{margin-top:9px;display:flex;flex-wrap:wrap;gap:6px}
+.klink{font-size:11px;font-family:var(--mono);border:1px solid var(--border2);border-radius:6px;
+  padding:3px 8px;color:var(--fg-dim);cursor:pointer;background:var(--bg3);transition:.12s;
+  display:inline-flex;align-items:center;gap:5px}
+.klink:hover{border-color:var(--lc,var(--accent));color:var(--fg-bright);background:var(--bg)}
+.klink .kd{width:6px;height:6px;border-radius:50%}
+
+ul.clean{list-style:none;margin:8px 0}
+ul.clean li{padding:7px 0 7px 24px;position:relative;border-bottom:1px solid var(--border);font-size:14px}
+ul.clean li:before{content:"";position:absolute;left:4px;top:14px;width:7px;height:7px;border-radius:2px;
+  background:var(--accent)}
+ul.clean li b{color:var(--fg-bright)}
+.callout{background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--accent2);
+  border-radius:10px;padding:13px 16px;margin:14px 0;font-size:13.6px;color:var(--fg-dim)}
+.callout b{color:var(--fg-bright)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:680px){.two{grid-template-columns:1fr}}
+
+.tocbar{position:sticky;top:0;z-index:5;background:rgba(27,32,48,.92);backdrop-filter:blur(8px);
+  border-bottom:1px solid var(--border);margin:0 -28px 0;padding:10px 28px;display:flex;gap:8px;flex-wrap:wrap}
+.tocbar a, .tocbar button{font-size:12.5px;color:var(--fg-dim);border:1px solid var(--border2);
+  background:var(--bg2);border-radius:20px;padding:5px 12px;cursor:pointer;font-family:inherit}
+.tocbar a:hover,.tocbar button:hover{color:var(--fg-bright);border-color:var(--accent)}
+.tocbar .on{background:var(--accent);color:#0c0f16;border-color:var(--accent);font-weight:700}
+
+.gsearch{position:relative;margin:18px 0 6px}
+.gsearch input{width:100%;background:var(--bg2);border:1px solid var(--border2);color:var(--fg);
+  border-radius:10px;padding:12px 14px 12px 40px;font-size:15px;font-family:inherit;outline:none}
+.gsearch input:focus{border-color:var(--accent)}
+.gsearch .ic{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--fg-faint)}
+.gcount{font-size:12.5px;color:var(--fg-faint);margin:6px 2px 14px}
+.ghidden{display:none!important}
+.backlink{display:inline-flex;align-items:center;gap:7px;margin-top:8px;font-size:13px;color:var(--fg-dim);
+  cursor:pointer}
+.backlink:hover{color:var(--fg-bright)}
+</style>
+  <link id="dv-favicon" rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJ0aWxlIiB4MT0iMCIgeTE9IjAiIHgyPSIwIiB5Mj0iMSI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjMTZjNGI2Ii8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMGE4ZjljIi8+PC9saW5lYXJHcmFkaWVudD48bGluZWFyR3JhZGllbnQgaWQ9ImJvYXJkIiB4MT0iMCIgeTE9IjAiIHgyPSIwIiB5Mj0iMSI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjZmZmZmZmIi8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjZTdmNGYzIi8+PC9saW5lYXJHcmFkaWVudD48L2RlZnM+PCEtLSB0aWxlIC0tPjxyZWN0IHg9IjMiIHk9IjMiIHdpZHRoPSI1OCIgaGVpZ2h0PSI1OCIgcng9IjE0IiBmaWxsPSJ1cmwoI3RpbGUpIi8+PHJlY3QgeD0iMyIgeT0iMyIgd2lkdGg9IjU4IiBoZWlnaHQ9IjU4IiByeD0iMTQiIGZpbGw9IiNmZmZmZmYiIG9wYWNpdHk9IjAuMDYiLz48IS0tIGdyYWR1YXRpb24gY2FwIC0tPjwhLS0gaGVhZCBiYW5kIC8gY2FwIGJhc2UgLS0+PHBhdGggZD0iTTIxIDI4LjUgdjcuMiBjMCAzLjQgNC45IDUuNiAxMSA1LjYgczExLTIuMiAxMS01LjYgdi03LjIgTDMyIDM0IFoiIGZpbGw9IiNjZGVlZWIiLz48IS0tIG1vcnRhcmJvYXJkIChkaWFtb25kKSAtLT48cGF0aCBkPSJNMzIgMTcgTDUzIDI3IEwzMiAzNyBMMTEgMjcgWiIgZmlsbD0idXJsKCNib2FyZCkiIHN0cm9rZT0iIzBhOGY5YyIgc3Ryb2tlLXdpZHRoPSIwLjYiLz48IS0tIGNlbnRyZSBidXR0b24gLS0+PGNpcmNsZSBjeD0iMzIiIGN5PSIyNyIgcj0iMi4xIiBmaWxsPSIjZjZiNTFlIi8+PCEtLSB0YXNzZWwgY29yZCBkcmFwaW5nIGxlZnQsIHdpdGggYmVhZCAtLT48cGF0aCBkPSJNMzIgMjcgQyAyNCAzMCwgMjAgMzMsIDIwIDM5IiBmaWxsPSJub25lIiBzdHJva2U9IiNmNmI1MWUiIHN0cm9rZS13aWR0aD0iMi4xIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz48Y2lyY2xlIGN4PSIyMCIgY3k9IjQwLjQiIHI9IjIuNyIgZmlsbD0iI2Y2YjUxZSIvPjxyZWN0IHg9IjE4LjQiIHk9IjQxLjYiIHdpZHRoPSIzLjIiIGhlaWdodD0iNC4yIiByeD0iMS40IiBmaWxsPSIjZjZiNTFlIi8+PCEtLSBwYXNzIGNoZWNrIGJhZGdlIChib3R0b20tcmlnaHQpIC0tPjxjaXJjbGUgY3g9IjQ2IiBjeT0iNDYuNSIgcj0iMTAiIGZpbGw9IiMyMWM0NWQiIHN0cm9rZT0iI2ZmZmZmZiIgc3Ryb2tlLXdpZHRoPSIyLjYiLz48cGF0aCBkPSJNNDEuMyA0Ni42IGwzLjEgMy4yIGw2LjIgLTYuOSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZmZmZmZmIiBzdHJva2Utd2lkdGg9IjIuNyIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+PC9zdmc+">
+  <link rel="apple-touch-icon" href="data:image/png;base64,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">
+  <meta name="theme-color" content="#0a8f9c">
+</head>
+<body>
+
+<div class="wrap">
+  <div class="phead">
+    <div class="eyebrow">Foundations</div>
+    <h1>The problem-solving methodology</h1>
+    <p>Every digital solution in this course is built with the same four-stage approach — <b>analysis,
+       design, development</b> and <b>evaluation</b>. Master the methodology once and it underpins every
+       outcome, from a data visualisation to a secure network response.</p>
+    <div class="backlink" onclick="dvHome()">← Back to course home</div>
+  </div>
+
+  <div class="stagebar">
+    <div class="sp"><div class="bar" style="background:#a78bfa"></div><div class="n">Stage 1</div><div class="t">Analysis</div><div class="d">What problem are we solving? Requirements, constraints, scope.</div></div>
+    <div class="sp"><div class="bar" style="background:#22d3ee"></div><div class="n">Stage 2</div><div class="t">Design</div><div class="d">How will it look and work? Design tools + evaluation criteria.</div></div>
+    <div class="sp"><div class="bar" style="background:#34d399"></div><div class="n">Stage 3</div><div class="t">Development</div><div class="d">Build it: manipulation, validation, testing, documentation.</div></div>
+    <div class="sp"><div class="bar" style="background:#fbbf24"></div><div class="n">Stage 4</div><div class="t">Evaluation</div><div class="d">How well did it work? Strategy, criteria, judgement.</div></div>
+  </div>
+
+  <div class="tocbar">
+    <a href="#analysis">1 · Analysis</a><a href="#design">2 · Design</a>
+    <a href="#development">3 · Development</a><a href="#evaluation">4 · Evaluation</a>
+    <button onclick="dvOpen('foundations-glossary.html')">Glossary →</button>
+  </div>
+
+  <!-- ===== ANALYSIS ===== -->
+  <div class="sec-wrap" id="analysis" style="--accent:#a78bfa;--accent2:#a78bfa">
+  <h2 class="sec">1 · Analysis</h2>
+  <p class="lead">Analysis works out <b>what</b> the solution must do before any building begins. The output
+     of analysis is a clear, agreed statement of the solution requirements, constraints and scope —
+     sometimes formalised as a <b>Software Requirements Specification (SRS)</b>.</p>
+
+  <h3 class="sub">Solution requirements</h3>
+  <ul class="clean">
+    <li><b>Functional requirements</b> — what the solution must <i>do</i> — described with verbs (e.g. “calculate the weekly total”).  <span class="klink" data-open="u1o1-kk08.html" style="--lc:#fbbf24" title="Open Requirements, constraints &amp; scope"><span class="kd" style="background:#fbbf24"></span>KK08 Requirements, constraints &amp; scope</span><span class="klink" data-open="u1o2-kk04.html" style="--lc:#4fc1ff" title="Open Requirements, constraints &amp; scope"><span class="kd" style="background:#4fc1ff"></span>KK04 Requirements, constraints &amp; scope</span><span class="klink" data-open="u2o1-kk05.html" style="--lc:#34d399" title="Open Solution specifications"><span class="kd" style="background:#34d399"></span>KK05 Solution specifications</span></li>
+    <li><b>Non-functional requirements</b> — how <i>well</i> the solution must perform — described with adjectives (usability, reliability, robustness, maintainability, portability, performance, ease of use).  <span class="klink" data-open="u1o1-kk08.html" style="--lc:#fbbf24" title="Open Requirements, constraints &amp; scope"><span class="kd" style="background:#fbbf24"></span>KK08 Requirements, constraints &amp; scope</span><span class="klink" data-open="u1o2-kk04.html" style="--lc:#4fc1ff" title="Open Requirements, constraints &amp; scope"><span class="kd" style="background:#4fc1ff"></span>KK04 Requirements, constraints &amp; scope</span></li>
+    <li><b>Constraints</b> — limitations the solution must work within — economic, legal, technical, social and usability factors.  <span class="klink" data-open="u1o1-kk08.html" style="--lc:#fbbf24" title="Open Requirements, constraints &amp; scope"><span class="kd" style="background:#fbbf24"></span>KK08 Requirements, constraints &amp; scope</span><span class="klink" data-open="u1o2-kk04.html" style="--lc:#4fc1ff" title="Open Requirements, constraints &amp; scope"><span class="kd" style="background:#4fc1ff"></span>KK04 Requirements, constraints &amp; scope</span></li>
+    <li><b>Scope / design brief</b> — the boundaries of the solution — what is in, and explicitly what is out.  <span class="klink" data-open="u1o1-kk08.html" style="--lc:#fbbf24" title="Open Requirements, constraints &amp; scope"><span class="kd" style="background:#fbbf24"></span>KK08 Requirements, constraints &amp; scope</span></li>
+  </ul>
+  <div class="callout">A good <b>SRS</b> is unambiguous, easy to understand, breaks the problem down, and tells
+     developers what must be achieved (and what is out of scope). It separates <b>logical</b> needs
+     (the vague “what”) from <b>physical</b> detail (the precise “how”).</div>
+
+  <h3 class="sub">Discovering requirements</h3>
+  <p class="lead">Requirements are gathered from users and stakeholders using a range of techniques:</p>
+  <ul class="clean">
+    <li><b>Interviews</b> — one-to-one questioning that gathers rich, detailed qualitative needs.  <span class="klink" data-open="u2o1-kk06.html" style="--lc:#34d399" title="Open Collecting user needs"><span class="kd" style="background:#34d399"></span>KK06 Collecting user needs</span></li>
+    <li><b>Surveys &amp; questionnaires</b> — structured questions distributed widely for quantitative data at scale.  <span class="klink" data-open="u2o1-kk06.html" style="--lc:#34d399" title="Open Collecting user needs"><span class="kd" style="background:#34d399"></span>KK06 Collecting user needs</span></li>
+    <li><b>Observation &amp; on-site visits</b> — watching users in their real context to uncover needs they may not state.  <span class="klink" data-open="u2o1-kk06.html" style="--lc:#34d399" title="Open Collecting user needs"><span class="kd" style="background:#34d399"></span>KK06 Collecting user needs</span></li>
+  </ul>
+
+  <h3 class="sub">Analysis tools</h3>
+  <ul class="clean">
+    <li><b>Context diagram</b> — shows the solution as a single process and the external entities it exchanges data with.</li>
+    <li><b>Use case diagram</b> — shows the actions (use cases) different users can perform with the system.</li>
+    <li><b>Data dictionary</b> — defines every data element: its name, type, size and validation.</li>
+    <li><b>User context diagram (UCD)</b> — places the user at the centre and maps their interactions and environment.</li>
+  </ul>
+  </div>
+
+  <!-- ===== DESIGN ===== -->
+  <div class="sec-wrap" id="design" style="--accent:#22d3ee;--accent2:#22d3ee">
+  <h2 class="sec">2 · Design</h2>
+  <p class="lead">Design decides <b>how</b> the solution will look and work, and sets the <b>evaluation criteria</b>
+     that will later judge success. Designs are represented with design tools and reviewed before development.</p>
+
+  <div class="two">
+    <div class="card" style="border-left-color:#22d3ee">
+      <div class="term">Logical design tools (the “what”)</div>
+      <div class="desc">Capture meaning and flow without committing to appearance:
+        context diagrams, data dictionaries, data flow diagrams (DFD), hierarchy/structure charts,
+        decision trees and pseudocode.</div>
+      <span class="links" style="margin-top:6px"><span class="klink" data-open="u2o1-kk07.html" style="--lc:#34d399" title="Open Design tools"><span class="kd" style="background:#34d399"></span>KK07 Design tools</span></span>
+    </div>
+    <div class="card" style="border-left-color:#22d3ee">
+      <div class="term">Physical design tools (the “how”)</div>
+      <div class="desc">Capture the concrete look and structure:
+        mock-ups and layout diagrams, storyboards, flowcharts, structure charts, and
+        entity-relationship diagrams (ERDs).</div>
+      <span class="links" style="margin-top:6px"><span class="klink" data-open="u1o1-kk09.html" style="--lc:#fbbf24" title="Open Design tools for solutions"><span class="kd" style="background:#fbbf24"></span>KK09 Design tools for solutions</span><span class="klink" data-open="u2o1-kk07.html" style="--lc:#34d399" title="Open Design tools"><span class="kd" style="background:#34d399"></span>KK07 Design tools</span></span>
+    </div>
+  </div>
+
+  <h3 class="sub">Common design tools</h3>
+  <ul class="clean">
+    <li><b>IPO chart</b> — lists the Inputs, the Process and the Outputs of a solution.  <span class="klink" data-open="u1o1-kk09.html" style="--lc:#fbbf24" title="Open Design tools for solutions"><span class="kd" style="background:#fbbf24"></span>KK09 Design tools for solutions</span></li>
+    <li><b>Mock-up / layout diagram</b> — a draft of the on-screen appearance and placement of elements.  <span class="klink" data-open="u1o1-kk09.html" style="--lc:#fbbf24" title="Open Design tools for solutions"><span class="kd" style="background:#fbbf24"></span>KK09 Design tools for solutions</span><span class="klink" data-open="u2o1-kk07.html" style="--lc:#34d399" title="Open Design tools"><span class="kd" style="background:#34d399"></span>KK07 Design tools</span></li>
+    <li><b>Flowchart &amp; pseudocode</b> — step-by-step logic of an algorithm, language-independent.  <span class="klink" data-open="u2o1-kk07.html" style="--lc:#34d399" title="Open Design tools"><span class="kd" style="background:#34d399"></span>KK07 Design tools</span></li>
+    <li><b>Storyboard &amp; sitemap</b> — the sequence of screens and the navigation between them.  <span class="klink" data-open="u2o1-kk07.html" style="--lc:#34d399" title="Open Design tools"><span class="kd" style="background:#34d399"></span>KK07 Design tools</span></li>
+    <li><b>Entity-relationship diagram (ERD)</b> — models data entities and their relationships; drawn in Chen’s notation or crow’s-foot notation.  <span class="klink" data-open="u1o1-kk10.html" style="--lc:#fbbf24" title="Open Relational database structure"><span class="kd" style="background:#fbbf24"></span>KK10 Relational database structure</span></li>
+    <li><b>Data flow diagram (DFD)</b> — shows how data moves between processes, stores and external entities.  <span class="klink" data-open="u1o1-kk09.html" style="--lc:#fbbf24" title="Open Design tools for solutions"><span class="kd" style="background:#fbbf24"></span>KK09 Design tools for solutions</span></li>
+  </ul>
+
+  <h3 class="sub">Evaluation criteria &amp; factors influencing design</h3>
+  <ul class="clean">
+    <li><b>Evaluation criteria</b> — measurable statements of efficiency (cost/time) and effectiveness, written now and used in Stage 4.  <span class="klink" data-open="u2o1-kk14.html" style="--lc:#34d399" title="Open Evaluation criteria"><span class="kd" style="background:#34d399"></span>KK14 Evaluation criteria</span></li>
+    <li><b>Factors influencing design</b> — economic, legal, technical, social and usability factors (affordance, interoperability, marketability, security).</li>
+  </ul>
+  </div>
+
+  <!-- ===== DEVELOPMENT ===== -->
+  <div class="sec-wrap" id="development" style="--accent:#34d399;--accent2:#34d399">
+  <h2 class="sec">3 · Development</h2>
+  <p class="lead">Development turns the design into a working solution through <b>manipulation</b> (coding/building),
+     then makes it trustworthy through <b>validation</b>, <b>testing</b> and <b>documentation</b>.</p>
+
+  <h3 class="sub">Manipulation &amp; documentation</h3>
+  <ul class="clean">
+    <li><b>Manipulation (coding)</b> — building the solution — entering formulas, writing code, structuring data.  <span class="klink" data-open="u1o2-kk08.html" style="--lc:#4fc1ff" title="Open Features of a language"><span class="kd" style="background:#4fc1ff"></span>KK08 Features of a language</span><span class="klink" data-open="u1o1-kk12.html" style="--lc:#fbbf24" title="Open Manipulating &amp; validating data"><span class="kd" style="background:#fbbf24"></span>KK12 Manipulating &amp; validating data</span></li>
+    <li><b>Internal documentation</b> — meaningful names and comments inside the solution that explain its data and logic and support maintenance.  <span class="klink" data-open="u1o2-kk10.html" style="--lc:#4fc1ff" title="Open Internal documentation"><span class="kd" style="background:#4fc1ff"></span>KK10 Internal documentation</span><span class="klink" data-open="u1o2-kk09.html" style="--lc:#4fc1ff" title="Open Naming conventions"><span class="kd" style="background:#4fc1ff"></span>KK09 Naming conventions</span></li>
+  </ul>
+
+  <h3 class="sub">Validation — is the input reasonable?</h3>
+  <ul class="clean">
+    <li><b>Existence check</b> — confirms required data has been entered.  <span class="klink" data-open="u1o1-kk12.html" style="--lc:#fbbf24" title="Open Manipulating &amp; validating data"><span class="kd" style="background:#fbbf24"></span>KK12 Manipulating &amp; validating data</span><span class="klink" data-open="u1o2-kk11.html" style="--lc:#4fc1ff" title="Open Validation techniques"><span class="kd" style="background:#4fc1ff"></span>KK11 Validation techniques</span></li>
+    <li><b>Type check</b> — confirms data is the expected data type.  <span class="klink" data-open="u1o1-kk12.html" style="--lc:#fbbf24" title="Open Manipulating &amp; validating data"><span class="kd" style="background:#fbbf24"></span>KK12 Manipulating &amp; validating data</span><span class="klink" data-open="u1o2-kk11.html" style="--lc:#4fc1ff" title="Open Validation techniques"><span class="kd" style="background:#4fc1ff"></span>KK11 Validation techniques</span></li>
+    <li><b>Range check</b> — confirms a value sits within an allowed minimum and maximum.  <span class="klink" data-open="u1o1-kk12.html" style="--lc:#fbbf24" title="Open Manipulating &amp; validating data"><span class="kd" style="background:#fbbf24"></span>KK12 Manipulating &amp; validating data</span><span class="klink" data-open="u1o2-kk11.html" style="--lc:#4fc1ff" title="Open Validation techniques"><span class="kd" style="background:#4fc1ff"></span>KK11 Validation techniques</span></li>
+  </ul>
+
+  <h3 class="sub">Testing — does it work?</h3>
+  <ul class="clean">
+    <li><b>Test table</b> — lists test cases with input, expected output and actual output.  <span class="klink" data-open="u1o2-kk12.html" style="--lc:#4fc1ff" title="Open Debugging &amp; testing"><span class="kd" style="background:#4fc1ff"></span>KK12 Debugging &amp; testing</span></li>
+    <li><b>Trace table &amp; desk check</b> — manually step through logic, tracking variable values to find errors.</li>
+    <li><b>Test data</b> — valid, invalid and boundary values chosen to exercise the solution.  <span class="klink" data-open="u1o2-kk12.html" style="--lc:#4fc1ff" title="Open Debugging &amp; testing"><span class="kd" style="background:#4fc1ff"></span>KK12 Debugging &amp; testing</span></li>
+  </ul>
+  <div class="callout"><b>Validation ≠ testing.</b> Validation checks that <i>input data</i> is reasonable;
+     testing checks that the <i>solution’s logic</i> produces the correct output.</div>
+  </div>
+
+  <!-- ===== EVALUATION ===== -->
+  <div class="sec-wrap" id="evaluation" style="--accent:#fbbf24;--accent2:#fbbf24">
+  <h2 class="sec">4 · Evaluation</h2>
+  <p class="lead">Evaluation judges <b>how well</b> the finished solution met its requirements. It happens
+     after the solution has been in use, against the criteria written during design, following an
+     <b>evaluation strategy</b>.</p>
+
+  <h3 class="sub">Strategy, criteria &amp; measures</h3>
+  <ul class="clean">
+    <li><b>Evaluation strategy</b> — the plan for how and when the solution will be evaluated — what data to collect and over what timeframe.  <span class="klink" data-open="u2o1-kk14.html" style="--lc:#34d399" title="Open Evaluation criteria"><span class="kd" style="background:#34d399"></span>KK14 Evaluation criteria</span></li>
+    <li><b>Efficiency</b> — how economically the solution uses resources — speed, labour and cost.  <span class="klink" data-open="u2o1-kk14.html" style="--lc:#34d399" title="Open Evaluation criteria"><span class="kd" style="background:#34d399"></span>KK14 Evaluation criteria</span></li>
+    <li><b>Effectiveness</b> — how well the solution achieves its purpose — quality, accuracy, reliability, attractiveness/readability, accessibility, portability, security, compatibility and expandability/flexibility.  <span class="klink" data-open="u2o1-kk14.html" style="--lc:#34d399" title="Open Evaluation criteria"><span class="kd" style="background:#34d399"></span>KK14 Evaluation criteria</span></li>
+  </ul>
+
+  <h3 class="sub">Evaluation methods</h3>
+  <ul class="clean">
+    <li><b>Interviews &amp; surveys</b> — collect real user feedback after the solution is in use to measure effectiveness.  <span class="klink" data-open="u2o1-kk06.html" style="--lc:#34d399" title="Open Collecting user needs"><span class="kd" style="background:#34d399"></span>KK06 Collecting user needs</span><span class="klink" data-open="u2o1-kk10.html" style="--lc:#34d399" title="Open Testing &amp; evaluating"><span class="kd" style="background:#34d399"></span>KK10 Testing &amp; evaluating</span></li>
+    <li><b>Comparing against criteria</b> — measure the solution against each efficiency and effectiveness criterion set in design.</li>
+  </ul>
+
+  <div class="callout">Based on a problem-solving methodology mind-map by <b>Clarence Goh</b>, expanded with the
+     VCE Applied Computing study-design detail. Use the chapter tags above to open the sub-topic where
+     each tool or term is taught in depth.</div>
+  </div>
+</div>
+
+
+<script>
+function dvOpen(file){
+  if(!file) return;
+  if(window.parent!==window){ try{parent.postMessage({type:'dv-open',file:file},'*');}catch(e){} }
+  else { location.href='index.html#m='+file; }
+}
+function dvHome(){
+  if(window.parent!==window){ try{parent.postMessage({type:'dv-home'},'*');}catch(e){} }
+  else { location.href='index.html'; }
+}
+document.addEventListener('click',function(e){
+  var k=e.target.closest('[data-open]'); if(k){ dvOpen(k.getAttribute('data-open')); }
+});
+</script>
+
+
+    <script src="assets/chatbot-corpus.js"></script>
+  <script src="assets/chatbot.js" defer></script>
+</body>
+</html>
