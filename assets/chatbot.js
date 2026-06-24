@@ -1,23 +1,23 @@
-/* Digital Vector — "Ask this site" offline assistant
+/* Digital Vector — "Ask this site" assistant
    Two modes:
-     • Search (no AI): BM25 over a prebuilt corpus of every page.
-     • Local AI: streams a grounded answer from a local Ollama model.
-   Offline, no CDN, no API key. AU English. */
+     • Search   : BM25 over a prebuilt corpus of every page. 100% offline, no setup.
+     • Local AI : Llama 3.2 running IN THE BROWSER via WebLLM + WebGPU.
+                  One switch. Downloads the model once (cached by the browser),
+                  then answers stream on-device — nothing leaves the machine,
+                  no Ollama, no install, no server.
+   AU English. */
 (function () {
   "use strict";
-  // Only mount in the top-level window (suppress inside the hub's iframe).
-  if (window.top !== window.self) return;
+  if (window.top !== window.self) return;          // don't mount inside the hub iframe
   if (window.__dvChatMounted) return;
   window.__dvChatMounted = true;
 
-  var OLLAMA = "http://localhost:11434";
-  var MODEL = "llama3.2";
-  var ONELINER =
-    "winget install --id Ollama.Ollama -e --accept-source-agreements; " +
-    "$env:Path=[Environment]::GetEnvironmentVariable('Path','Machine')+';'+[Environment]::GetEnvironmentVariable('Path','User'); " +
-    "[Environment]::SetEnvironmentVariable('OLLAMA_ORIGINS','*','User'); $env:OLLAMA_ORIGINS='*'; " +
-    "ollama pull " + MODEL + "; " +
-    "Get-Process '*ollama*' -EA SilentlyContinue | Stop-Process -Force; ollama serve";
+  /* ---------------- WebLLM config ---------------- */
+  // Pinned ESM build of @mlc-ai/web-llm (first load needs internet; then cached offline).
+  var WEBLLM_URL = "https://esm.run/@mlc-ai/web-llm@0.2.84";
+  var LLM_PRIMARY  = "Llama-3.2-3B-Instruct-q4f16_1-MLC";   // ~1.8 GB
+  var LLM_FALLBACK = "Llama-3.2-1B-Instruct-q4f16_1-MLC";   // ~0.9 GB, for lower-spec machines
+  var hasWebGPU = (typeof navigator !== "undefined" && !!navigator.gpu);
 
   /* ---------------- styles ---------------- */
   var css = `
@@ -35,13 +35,23 @@
   .dvc-head h3{margin:0;font-size:15px;font-weight:700;flex:1;color:#fff}
   .dvc-dot{width:8px;height:8px;border-radius:50%;background:#6b7587;flex:none}
   .dvc-dot.on{background:#3fb950;box-shadow:0 0 0 3px rgba(63,185,80,.18)}
+  .dvc-dot.load{background:#d8a72e;box-shadow:0 0 0 3px rgba(216,167,46,.18)}
   .dvc-x{background:none;border:none;color:#9aa4b2;font-size:20px;cursor:pointer;line-height:1;padding:2px 6px;border-radius:6px}
   .dvc-x:hover{background:#1c2230;color:#fff}
   .dvc-modes{display:flex;gap:6px;padding:10px 14px 6px;background:#121826}
   .dvc-mode{flex:1;text-align:center;padding:8px 6px;border-radius:9px;background:#1a2130;color:#aeb6c4;
     border:1px solid #232a39;cursor:pointer;font-weight:600;font-size:12.5px}
   .dvc-mode.sel{background:#1f6feb;color:#fff;border-color:#1f6feb}
+  .dvc-mode.disabled{opacity:.55;cursor:not-allowed}
   .dvc-mode small{display:block;font-weight:500;font-size:10.5px;opacity:.85;margin-top:2px}
+  /* AI status / progress strip */
+  .dvc-aibar{display:none;padding:0 14px 10px;background:#121826}
+  .dvc-aibar.show{display:block}
+  .dvc-aibar .lbl{display:flex;align-items:center;gap:7px;font-size:11.5px;color:#aab4c4;margin-bottom:6px}
+  .dvc-aibar .lbl b{color:#e8edf6;font-weight:600}
+  .dvc-prog{height:6px;border-radius:6px;background:#0c111b;border:1px solid #20283a;overflow:hidden}
+  .dvc-progfill{height:100%;width:0%;background:linear-gradient(90deg,#1f6feb,#4fc1ff);transition:width .25s ease}
+  .dvc-aibar.ready .dvc-prog{display:none}
   .dvc-body{flex:1;overflow-y:auto;padding:14px;scroll-behavior:smooth}
   .dvc-hint{color:#8b95a6;font-size:12.5px;margin:2px 0 12px}
   .dvc-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px}
@@ -69,18 +79,6 @@
   .dvc-send:disabled{opacity:.5;cursor:default}
   .dvc-note{font-size:11px;color:#7f8aa0;margin-top:7px;text-align:center}
   .dvc-note a{color:#5aa7ff;cursor:pointer;text-decoration:underline}
-  .dvc-install{background:#0c111b;border:1px solid #233049;border-radius:12px;padding:13px;margin:6px 0}
-  .dvc-install h4{margin:0 0 6px;color:#fff;font-size:13.5px}
-  .dvc-install p{margin:6px 0;font-size:12.4px;color:#aeb8c8}
-  .dvc-install ol{margin:6px 0 6px 18px;padding:0;font-size:12.4px;color:#aeb8c8}
-  .dvc-install li{margin:3px 0}
-  .dvc-code{position:relative;background:#06090f;border:1px solid #1d2636;border-radius:8px;padding:10px 12px;margin:8px 0;
-    font:11.5px/1.5 ui-monospace,Consolas,monospace;color:#cfe3ff;white-space:pre-wrap;word-break:break-all}
-  .dvc-btnrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
-  .dvc-b{background:#1a2336;border:1px solid #2a3850;color:#dbe6ff;border-radius:8px;padding:8px 11px;font-size:12px;
-    cursor:pointer;font-weight:600}
-  .dvc-b:hover{border-color:#1f6feb;color:#fff}
-  .dvc-b.primary{background:#1f6feb;border-color:#1f6feb;color:#fff}
   .dvc-spin{display:inline-block;width:13px;height:13px;border:2px solid #2a3850;border-top-color:#5aa7ff;border-radius:50%;
     animation:dvspin .7s linear infinite;vertical-align:-2px;margin-right:6px}
   @keyframes dvspin{to{transform:rotate(360deg)}}
@@ -88,7 +86,6 @@
   @keyframes dvblink{50%{opacity:0}}
   @media(max-width:520px){.dvc-panel{right:8px;bottom:8px;width:calc(100vw - 16px);height:calc(100vh - 16px)}}
   `;
-
   var style = document.createElement("style");
   style.textContent = css;
   document.head.appendChild(style);
@@ -108,44 +105,135 @@
     '<h3>Ask this site</h3><button class="dvc-x" id="dvcClose">×</button></div>' +
     '<div class="dvc-modes">' +
     '<div class="dvc-mode sel" data-mode="search">Search<small>find on every page</small></div>' +
-    '<div class="dvc-mode" data-mode="ai">Local AI<small id="dvcAiSub">needs Ollama</small></div>' +
+    '<div class="dvc-mode" data-mode="ai">Local AI<small id="dvcAiSub">' +
+      (hasWebGPU ? "runs in your browser" : "needs WebGPU") + "</small></div>" +
+    "</div>" +
+    '<div class="dvc-aibar" id="dvcAiBar">' +
+      '<div class="lbl" id="dvcAiLbl"></div>' +
+      '<div class="dvc-prog"><div class="dvc-progfill" id="dvcProg"></div></div>' +
     "</div>" +
     '<div class="dvc-body" id="dvcBody"></div>' +
     '<div class="dvc-foot"><div class="dvc-inrow">' +
     '<textarea class="dvc-in" id="dvcIn" rows="1" placeholder="Ask about a topic, term or exam question…"></textarea>' +
     '<button class="dvc-send" id="dvcSend">Ask</button></div>' +
-    '<div class="dvc-note" id="dvcNote">Searches all ' +
-    "topics offline. No data leaves your device.</div></div>";
+    '<div class="dvc-note" id="dvcNote">Searches all topics offline. No data leaves your device.</div></div>';
   document.body.appendChild(panel);
 
   var $ = function (id) { return document.getElementById(id); };
   var body = $("dvcBody"), input = $("dvcIn"), sendBtn = $("dvcSend"),
-    dot = $("dvcDot"), note = $("dvcNote"), aiSub = $("dvcAiSub");
-  var mode = "search", ollamaUp = false, busy = false;
+    dot = $("dvcDot"), note = $("dvcNote"), aiSub = $("dvcAiSub"),
+    aiBar = $("dvcAiBar"), aiLbl = $("dvcAiLbl"), prog = $("dvcProg");
+
+  var mode = "search", busy = false;
+  // AI engine state
+  var engine = null, enginePromise = null, aiState = "idle"; // idle|loading|ready|error
+  var activeModel = LLM_PRIMARY;
 
   /* ---------------- open / close ---------------- */
-  function openPanel() { panel.classList.add("open"); fab.style.display = "none"; input.focus(); pollOllama(); }
+  function openPanel() { panel.classList.add("open"); fab.style.display = "none"; input.focus(); }
   function closePanel() { panel.classList.remove("open"); fab.style.display = "flex"; }
   fab.addEventListener("click", openPanel);
   $("dvcClose").addEventListener("click", closePanel);
 
-  /* ---------------- mode switch ---------------- */
+  /* ---------------- mode switch (the "flip a switch") ---------------- */
   Array.prototype.forEach.call(panel.querySelectorAll(".dvc-mode"), function (el) {
     el.addEventListener("click", function () {
-      panel.querySelectorAll(".dvc-mode").forEach(function (m) { m.classList.remove("sel"); });
-      el.classList.add("sel");
-      mode = el.dataset.mode;
-      if (mode === "ai") {
-        note.innerHTML = ollamaUp
-          ? "Local AI answers in full sentences, grounded in this site."
-          : 'Local AI is off. <a id="dvcSetup">Set up Ollama</a> for sentence answers.';
-        var s = $("dvcSetup"); if (s) s.addEventListener("click", showInstall);
-        if (!ollamaUp) showInstall();
-      } else {
-        note.innerHTML = "Searches all topics offline. No data leaves your device.";
+      var target = el.dataset.mode;
+      if (target === "ai" && !hasWebGPU) {           // unsupported browser → explain, stay on search
+        setMode("search");
+        note.innerHTML = "In-browser AI needs <b>WebGPU</b> (Chrome or Edge 113+). Search still works everywhere.";
+        return;
       }
+      setMode(target);
     });
   });
+
+  function setMode(m) {
+    mode = m;
+    panel.querySelectorAll(".dvc-mode").forEach(function (x) {
+      x.classList.toggle("sel", x.dataset.mode === m);
+    });
+    if (m === "ai") {
+      aiBar.classList.add("show");                   // show AI status strip
+      if (aiState === "idle" || aiState === "error") startLoad();  // first time / retry → auto-download + run
+      else refreshAiNote();
+    } else {
+      aiBar.classList.remove("show");                // SEARCH: hide all AI UI (fixes stale-instructions bug)
+      note.innerHTML = "Searches all topics offline. No data leaves your device.";
+    }
+  }
+
+  function refreshAiNote() {
+    if (aiState === "ready") {
+      note.innerHTML = "Llama 3.2 is running on your device — answers are grounded in this site.";
+    } else if (aiState === "loading") {
+      note.innerHTML = "Setting up the on-device model…";
+    } else if (aiState === "error") {
+      note.innerHTML = "Couldn't start in-browser AI. Using Search instead is always available.";
+    }
+  }
+
+  /* ---------------- WebLLM load (automatic, cached) ---------------- */
+  function setProg(pct, text) {
+    prog.style.width = Math.max(0, Math.min(100, pct)) + "%";
+    aiLbl.innerHTML = text;
+  }
+  function startLoad() {
+    if (aiState === "error") { engine = null; enginePromise = null; activeModel = LLM_PRIMARY; }
+    aiState = "loading";
+    dot.classList.add("load");
+    aiSub.textContent = "starting…";
+    aiBar.classList.remove("ready");
+    setProg(2, '<span class="dvc-spin"></span><b>Preparing Llama 3.2</b> — first time only');
+    refreshAiNote();
+    loadEngine(activeModel).then(function () {
+      aiState = "ready";
+      dot.classList.remove("load"); dot.classList.add("on");
+      aiSub.textContent = "ready · on-device";
+      aiBar.classList.add("ready");
+      setProg(100, "<b>Ready</b> — Llama 3.2 is running locally");
+      refreshAiNote();
+    }).catch(function (e) {
+      // try the lighter model once before giving up
+      if (activeModel === LLM_PRIMARY) {
+        activeModel = LLM_FALLBACK; engine = null; enginePromise = null;
+        setProg(2, '<span class="dvc-spin"></span>Loading a lighter model…');
+        loadEngine(activeModel).then(function () {
+          aiState = "ready"; dot.classList.remove("load"); dot.classList.add("on");
+          aiSub.textContent = "ready · on-device (1B)";
+          aiBar.classList.add("ready");
+          setProg(100, "<b>Ready</b> — Llama 3.2 (1B) is running locally");
+          refreshAiNote();
+        }).catch(failLoad);
+      } else { failLoad(e); }
+    });
+  }
+  function failLoad() {
+    aiState = "error"; dot.classList.remove("load"); dot.classList.remove("on");
+    aiSub.textContent = "unavailable";
+    aiBar.classList.remove("ready");
+    setProg(0, "Couldn't load the model (low memory or no network on first run).");
+    refreshAiNote();
+  }
+
+  function loadEngine(model) {
+    if (engine) return Promise.resolve(engine);
+    if (enginePromise) return enginePromise;
+    enginePromise = import(/* @vite-ignore */ WEBLLM_URL).then(function (webllm) {
+      return webllm.CreateMLCEngine(model, {
+        initProgressCallback: function (r) {
+          var pct = Math.round((r.progress || 0) * 100);
+          var label;
+          if (/cache|fetch|download/i.test(r.text || "")) label = "<b>Downloading model</b> · " + pct + "%";
+          else if (/load|gpu|shader|compil/i.test(r.text || "")) label = "<b>Loading into GPU</b> · " + pct + "%";
+          else label = pct >= 100 ? "<b>Finalising…</b>" : "<b>Preparing</b> · " + pct + "%";
+          setProg(Math.max(3, pct), label);
+          aiSub.textContent = pct + "%";
+        }
+      });
+    }).then(function (e) { engine = e; return e; });
+    return enginePromise;
+  }
 
   /* ---------------- input behaviour ---------------- */
   input.addEventListener("input", function () {
@@ -170,7 +258,9 @@
       "what is encapsulation?", "types of malware", "validation techniques",
       "primary and foreign keys"];
     var html = '<div class="dvc-hint">Ask a question or pick a topic. ' +
-      "I search every chapter and sub-topic in this site.</div>" +
+      "I search every chapter and sub-topic in this site." +
+      (hasWebGPU ? " Flip on <b>Local AI</b> for full-sentence answers, on your device." : "") +
+      "</div>" +
       '<div class="dvc-chips">' +
       chips.map(function (c) { return '<button class="dvc-chip">' + esc(c) + "</button>"; }).join("") +
       "</div>";
@@ -188,8 +278,11 @@
     addMsg("you", esc(q));
     input.value = ""; input.style.height = "auto";
     var hits = search(q, 6);
-    if (mode === "ai" && ollamaUp) { aiAnswer(q, hits); }
-    else { showResults(q, hits); }
+    if (mode === "ai" && aiState === "ready") { aiAnswer(q, hits); }
+    else if (mode === "ai" && aiState === "loading") {
+      var b = addMsg("bot", "The on-device model is still downloading — here are the matching pages meanwhile:");
+      hits.forEach(function (h) { b.appendChild(card(h, q)); });
+    } else { showResults(q, hits); }
   }
 
   function showResults(q, hits) {
@@ -200,13 +293,6 @@
     }
     var bot = addMsg("bot", "Top matches across the site:");
     hits.forEach(function (h) { bot.appendChild(card(h, q)); });
-    if (mode === "ai" && !ollamaUp) {
-      var p = document.createElement("div"); p.className = "dvc-note";
-      p.style.marginTop = "8px"; p.style.textAlign = "left";
-      p.innerHTML = 'Want these summarised in sentences? <a id="dvcSetup2">Set up Local AI</a>.';
-      bot.appendChild(p);
-      $("dvcSetup2").addEventListener("click", showInstall);
-    }
     body.scrollTop = body.scrollHeight;
   }
 
@@ -232,38 +318,11 @@
         window.openModule(d.nav); closePanel(); return;
       }
     } catch (e) { }
-    // standalone page: hand off to the hub with a hash
     var target = d.kind === "chapter" ? "index.html#c=" + d.nav : "index.html#m=" + d.nav;
     window.location.href = target;
   }
 
-  /* ---------------- Ollama detection ---------------- */
-  var pollTimer = null;
-  function pollOllama() {
-    check();
-    if (pollTimer) clearInterval(pollTimer);
-    pollTimer = setInterval(check, 4000);
-  }
-  function check() {
-    fetch(OLLAMA + "/api/tags", { method: "GET" })
-      .then(function (r) { return r.ok ? r.json() : null; })
-      .then(function (j) { setOllama(!!j); })
-      .catch(function () { setOllama(false); });
-  }
-  function setOllama(up) {
-    if (up === ollamaUp) { if (up) dot.classList.add("on"); return; }
-    ollamaUp = up;
-    dot.classList.toggle("on", up);
-    aiSub.textContent = up ? "ready" : "needs Ollama";
-    if (mode === "ai") {
-      note.innerHTML = up
-        ? "Local AI is ready — answers in full sentences, grounded in this site."
-        : 'Local AI is off. <a id="dvcSetup">Set up Ollama</a> for sentence answers.';
-      var s = $("dvcSetup"); if (s) s.addEventListener("click", showInstall);
-    }
-  }
-
-  /* ---------------- Local AI answer (streamed) ---------------- */
+  /* ---------------- Local AI answer (streamed, grounded) ---------------- */
   function aiAnswer(q, hits) {
     if (!hits.length) {
       addMsg("bot", "I couldn't find anything on that in the site content, so I won't guess. " +
@@ -276,117 +335,43 @@
       var tag = d.kind === "chapter" ? d.chapter : d.code + " " + d.title;
       return "[" + (i + 1) + "] (" + tag + " — " + d.head + ")\n" + d.text;
     }).join("\n\n");
-    var sys = "You are a study assistant for a VCE Applied Computing (Units 1&2) website. " +
+    var sys = "You are a study assistant for a VCE Applied Computing (Units 1 & 2) website. " +
       "Answer ONLY from the provided context. If it is not covered, say so plainly. " +
       "Use Australian English and British spelling. Be clear and concise, like a teacher. " +
-      "Where useful, cite the source tag in brackets, e.g. (KK05 Australian Privacy Principles). " +
+      "Where useful, name the source tag in brackets, e.g. (KK05 Australian Privacy Principles). " +
       "Do not invent facts or marks.";
     var usr = "Context:\n" + ctx + "\n\nQuestion: " + q + "\n\nAnswer:";
 
     var bot = addMsg("bot", '<span class="dvc-spin"></span>Thinking…');
     var acc = "";
-    fetch(OLLAMA + "/api/chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: MODEL, stream: true,
-        messages: [{ role: "system", content: sys }, { role: "user", content: usr }],
-        options: { temperature: 0.2 }
-      })
-    }).then(function (resp) {
-      if (!resp.ok || !resp.body) throw new Error("no stream");
-      var reader = resp.body.getReader(), dec = new TextDecoder(), buf = "";
-      function pump() {
-        return reader.read().then(function (res) {
-          if (res.done) { finish(); return; }
-          buf += dec.decode(res.value, { stream: true });
-          var lines = buf.split("\n"); buf = lines.pop();
-          lines.forEach(function (ln) {
-            ln = ln.trim(); if (!ln) return;
-            try {
-              var j = JSON.parse(ln);
-              if (j.message && j.message.content) {
-                acc += j.message.content;
-                bot.innerHTML = mdLite(acc) + '<span class="dvc-cursor"></span>';
-                body.scrollTop = body.scrollHeight;
-              }
-            } catch (e) { }
-          });
-          return pump();
+
+    (async function () {
+      try {
+        var stream = await engine.chat.completions.create({
+          messages: [{ role: "system", content: sys }, { role: "user", content: usr }],
+          stream: true, temperature: 0.2, max_tokens: 800
         });
-      }
-      function finish() {
+        for await (var chunk of stream) {
+          var delta = (chunk.choices && chunk.choices[0] && chunk.choices[0].delta &&
+            chunk.choices[0].delta.content) || "";
+          if (delta) {
+            acc += delta;
+            bot.innerHTML = mdLite(acc) + '<span class="dvc-cursor"></span>';
+            body.scrollTop = body.scrollHeight;
+          }
+        }
         bot.innerHTML = mdLite(acc || "(no answer)");
         var src = document.createElement("div"); src.style.marginTop = "8px";
         src.innerHTML = '<div class="dvc-note" style="text-align:left">Sources:</div>';
         bot.appendChild(src);
         hits.slice(0, 3).forEach(function (h) { bot.appendChild(card(h, q)); });
+      } catch (e) {
+        bot.innerHTML = "The on-device model hit a problem. Showing search matches instead:";
+        hits.forEach(function (h) { bot.appendChild(card(h, q)); });
+      } finally {
         busy = false; sendBtn.disabled = false; body.scrollTop = body.scrollHeight;
       }
-      return pump();
-    }).catch(function () {
-      bot.innerHTML = "I couldn't reach the local AI. It may still be starting up. " +
-        "Showing search matches instead:";
-      hits.forEach(function (h) { bot.appendChild(card(h, q)); });
-      busy = false; sendBtn.disabled = false; setOllama(false);
-    });
-  }
-
-  /* ---------------- install drawer ---------------- */
-  function showInstall() {
-    if (body.querySelector("#dvcInstall")) { body.scrollTop = body.scrollHeight; return; }
-    var d = document.createElement("div");
-    d.className = "dvc-install"; d.id = "dvcInstall";
-    d.innerHTML =
-      "<h4>Turn on Local AI (optional)</h4>" +
-      "<p>The <b>Search</b> mode already works with no setup. For full-sentence answers, " +
-      "run a free local model with <b>Ollama</b> — everything stays on your machine.</p>" +
-      "<ol><li>Open <b>Windows PowerShell</b>.</li>" +
-      "<li>Paste the one line below and press Enter.</li>" +
-      "<li>Leave that window open, then click <b>Re-check</b>.</li></ol>" +
-      '<div class="dvc-code" id="dvcCode">' + esc(ONELINER) + "</div>" +
-      '<div class="dvc-btnrow">' +
-      '<button class="dvc-b primary" id="dvcCopy">Copy one-liner</button>' +
-      '<button class="dvc-b" id="dvcPs1">Download .ps1</button>' +
-      '<button class="dvc-b" id="dvcRecheck">Re-check</button></div>' +
-      '<p style="margin-top:9px">Already on Mac/Linux? Install Ollama, then run ' +
-      "<b>OLLAMA_ORIGINS=* ollama serve</b> and <b>ollama pull " + MODEL + "</b>.</p>";
-    body.appendChild(d); body.scrollTop = body.scrollHeight;
-    $("dvcCopy").addEventListener("click", function () {
-      copy(ONELINER); this.textContent = "Copied ✓";
-      var b = this; setTimeout(function () { b.textContent = "Copy one-liner"; }, 1600);
-    });
-    $("dvcPs1").addEventListener("click", downloadPs1);
-    $("dvcRecheck").addEventListener("click", function () {
-      this.innerHTML = '<span class="dvc-spin"></span>Checking'; var b = this;
-      check(); setTimeout(function () {
-        b.textContent = ollamaUp ? "Connected ✓" : "Still off — try again";
-      }, 1200);
-    });
-  }
-
-  function downloadPs1() {
-    var ps =
-      "# Digital Vector - one-step Ollama setup for the offline study assistant\r\n" +
-      "# Right-click this file > Run with PowerShell (or paste into a PowerShell window).\r\n\r\n" +
-      "Write-Host 'Installing Ollama...' -ForegroundColor Cyan\r\n" +
-      "winget install --id Ollama.Ollama -e --accept-source-agreements\r\n\r\n" +
-      "# Refresh PATH so 'ollama' works in this same session\r\n" +
-      "$env:Path=[Environment]::GetEnvironmentVariable('Path','Machine')+';'+[Environment]::GetEnvironmentVariable('Path','User')\r\n\r\n" +
-      "# Allow the browser page to talk to the local server\r\n" +
-      "[Environment]::SetEnvironmentVariable('OLLAMA_ORIGINS','*','User')\r\n" +
-      "$env:OLLAMA_ORIGINS='*'\r\n\r\n" +
-      "Write-Host 'Downloading the language model (first time only)...' -ForegroundColor Cyan\r\n" +
-      "ollama pull " + MODEL + "\r\n\r\n" +
-      "# Restart the server so the new origin setting takes effect\r\n" +
-      "Get-Process '*ollama*' -ErrorAction SilentlyContinue | Stop-Process -Force\r\n" +
-      "Write-Host 'Starting Ollama - keep this window open, then click Re-check in the browser.' -ForegroundColor Green\r\n" +
-      "ollama serve\r\n";
-    var blob = new Blob([ps], { type: "text/plain" });
-    var a = document.createElement("a");
-    a.href = URL.createObjectURL(blob); a.download = "setup-ollama.ps1";
-    document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    setTimeout(function () { URL.revokeObjectURL(a.href); }, 4000);
+    })();
   }
 
   /* ================= BM25 search engine ================= */
@@ -399,7 +384,7 @@
     for (var i = 0; i < m.length; i++) {
       var w = m[i];
       if (w.length < 2 || STOP[w]) continue;
-      if (w.length > 4 && w.charAt(w.length - 1) === "s") w = w.slice(0, -1); // crude stem
+      if (w.length > 4 && w.charAt(w.length - 1) === "s") w = w.slice(0, -1);
       out.push(w);
     }
     return out;
@@ -434,7 +419,6 @@
       if (s > 0) scores.push({ i: i, s: s, doc: IDX.docs[i] });
     }
     scores.sort(function (a, c) { return c.s - a.s; });
-    // de-duplicate near-identical heads within the same page
     var seen = {}, out = [];
     for (var n = 0; n < scores.length && out.length < k; n++) {
       var key = scores[n].doc.file + "|" + scores[n].doc.head;
@@ -471,15 +455,6 @@
     h = h.replace(/`([^`]+)`/g, '<code style="background:#0c1420;padding:1px 4px;border-radius:4px">$1</code>');
     h = h.replace(/\n\s*[-•]\s+/g, "<br>• ").replace(/\n{2,}/g, "<br><br>").replace(/\n/g, "<br>");
     return h;
-  }
-  function copy(t) {
-    if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(t).catch(fallbackCopy.bind(null, t)); }
-    else fallbackCopy(t);
-  }
-  function fallbackCopy(t) {
-    var ta = document.createElement("textarea"); ta.value = t;
-    ta.style.position = "fixed"; ta.style.opacity = "0"; document.body.appendChild(ta);
-    ta.select(); try { document.execCommand("copy"); } catch (e) { } document.body.removeChild(ta);
   }
 
   welcome();
